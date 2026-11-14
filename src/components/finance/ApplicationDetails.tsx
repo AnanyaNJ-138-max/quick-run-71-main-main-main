@@ -139,6 +139,52 @@ function DetailSection({
   );
 }
 
+export function DocumentVerificationHistory({
+  documentVerifications,
+}: {
+  documentVerifications?: DocumentVerification[];
+}) {
+  const history = (documentVerifications ?? []).flatMap((verification) =>
+    verification.history.map((event, index) => ({
+      documentType: verification.documentType,
+      event,
+      index,
+    })),
+  );
+
+  return (
+    <div className="application-details-print">
+      <DetailSection title="Document Verification History" accent="blue">
+        {history.length > 0 ? (
+          <ul className="space-y-2">
+            {history.map(({ documentType, event, index }) => (
+              <li
+                key={`${documentType}-${event.date}-${index}`}
+                className="rounded-lg border border-application-line bg-application-surface px-3 py-2"
+              >
+                <p className="text-sm font-medium">{documentLabel(documentType)}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {event.previousStatus ?? "—"} → {event.status} · Decision:{" "}
+                  {event.decision ?? event.status} · {event.reviewer ?? "Reviewer"} ·{" "}
+                  {new Date(event.date).toLocaleString("en-IN")}
+                  {event.correctionRequestReference
+                    ? ` · Request ${event.correctionRequestReference}`
+                    : ""}
+                  {event.status === "Rejected" && event.reason ? ` · ${event.reason}` : ""}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No document verification history recorded.
+          </p>
+        )}
+      </DetailSection>
+    </div>
+  );
+}
+
 const chipClass =
   "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium whitespace-nowrap";
 // Root-relative paths ("/sample-documents/...") are same-origin stored files and must be accepted;
@@ -485,17 +531,6 @@ export function ApplicationDetails({
               <ul className="grid gap-2 text-sm sm:grid-cols-2">
                 {details.documents.map((document, index) => {
                   const { type, provided, fileUrl } = document;
-                  const verificationStatus = documentVerificationStatus(
-                    document,
-                    documentVerifications,
-                  );
-                  const verification = documentVerifications?.find(
-                    (item) => item.documentType === type,
-                  );
-                  const latestRejection = verification?.history
-                    .slice()
-                    .reverse()
-                    .find((entry) => entry.status === "Rejected");
                   const uploadedFileAvailable =
                     provided && !!fileUrl && DOCUMENT_FILE_SOURCE_PATTERN.test(fileUrl);
                   return (
@@ -510,60 +545,19 @@ export function ApplicationDetails({
                         ) : (
                           <XCircle className="h-4 w-4 shrink-0 text-muted-foreground" />
                         )}
-                        <span className="min-w-0 break-words">
-                          {documentLabel(type)}
-                          {latestRejection?.reason && (
-                            <span className="mt-1 block text-xs text-destructive">
-                              {verificationStatus === "Rejected"
-                                ? `Rejected: ${latestRejection.reason}`
-                                : `Previous rejection: ${latestRejection.reason}`}
-                            </span>
-                          )}
-                          {verification?.history.map((event, eventIndex) => (
-                            <span
-                              key={`${event.date}-${eventIndex}`}
-                              className="mt-1 block text-xs text-muted-foreground"
-                            >
-                              {event.previousStatus ?? "—"} → {event.status} · Decision:{" "}
-                              {event.decision ?? event.status} · {event.reviewer ?? "Reviewer"} ·{" "}
-                              {new Date(event.date).toLocaleString("en-IN")}
-                              {event.correctionRequestReference
-                                ? ` · Request ${event.correctionRequestReference}`
-                                : ""}
-                              {event.status === "Rejected" && event.reason
-                                ? ` · ${event.reason}`
-                                : ""}
-                            </span>
-                          ))}
-                        </span>
+                        <span className="min-w-0 break-words">{documentLabel(type)}</span>
                       </span>
                       <span className="flex shrink-0 items-center justify-end gap-1.5">
                         {!provided || !fileUrl ? (
-                          <>
-                            <span
-                              className={cn(
-                                chipClass,
-                                "border-danger-soft bg-danger-soft text-destructive",
-                              )}
-                            >
-                              Missing
-                            </span>
-                          </>
-                        ) : (
                           <span
                             className={cn(
                               chipClass,
-                              verificationStatus === "Approved" &&
-                                "border-success-soft bg-success-soft text-success",
-                              verificationStatus === "Rejected" &&
-                                "border-danger-soft bg-danger-soft text-destructive",
-                              verificationStatus === "Pending" &&
-                                "border-warning-soft bg-warning-soft text-warning",
+                              "border-danger-soft bg-danger-soft text-destructive",
                             )}
                           >
-                            {verificationStatus}
+                            Missing
                           </span>
-                        )}
+                        ) : null}
                         {uploadedFileAvailable && onVerifyDocument && (
                           <Button
                             type="button"

@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { differenceInCalendarDays } from "date-fns";
 import { FeeConcessions } from "@/components/finance/FeeConcessions";
+import { DocumentVerificationHistory } from "@/components/finance/ApplicationDetails";
 import {
   useCallback,
   useEffect,
@@ -715,6 +716,7 @@ function Applications() {
                 onSendCorrectionRequest={sendApplicationCorrectionRequest}
                 correctionRequests={documentCorrections}
               />
+              <DocumentVerificationHistory documentVerifications={view.documentVerifications} />
               <section className="space-y-3 rounded-lg border p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="font-semibold">For office use only</h3>

@@ -4,6 +4,7 @@ import { AdministrationHistory } from "@/components/finance/AdministrationHistor
 import {
   ApplicationDetails,
   ApplicationDetailsPrintButton,
+  DocumentVerificationHistory,
 } from "@/components/finance/ApplicationDetails";
 import {
   areRequiredDocumentsApproved,
@@ -109,6 +110,90 @@ describe("Administration history", () => {
     );
     expect(screen.queryByText("Test Student", { selector: "h2" })).not.toBeInTheDocument();
     expect(screen.getByText(String(new Date().getFullYear() - 2000))).toBeInTheDocument();
+  });
+
+  it("renders document verification history outside the original application form", () => {
+    const submittedDocument = {
+      type: "ID proof" as const,
+      fileName: "id-proof.pdf",
+      fileUrl: "/sample-documents/id-proof.pdf",
+      provided: true,
+    };
+    const verificationDate = "2026-11-07T10:00:00.000Z";
+    const sourceFingerprint = documentSourceFingerprint(
+      submittedDocument.fileName,
+      submittedDocument.fileUrl,
+    );
+    const event = {
+      status: "Approved" as const,
+      decision: "Approved" as const,
+      previousStatus: "Pending" as const,
+      date: verificationDate,
+      fileName: submittedDocument.fileName,
+      sourceFingerprint,
+      reviewer: "Accounts Officer",
+    };
+    const documentVerifications: DocumentVerification[] = [
+      {
+        documentType: submittedDocument.type,
+        ...event,
+        history: [event],
+      },
+    ];
+    const snapshot = buildAdministrationDetailsPayload(
+      {
+        ...person,
+        applicationDetails: {
+          dateOfBirth: "",
+          addressLine1: "",
+          addressLine2: "",
+          city: "",
+          state: "",
+          postalCode: "",
+          guardianName: "",
+          guardianRelationship: "",
+          guardianPhone: "",
+          guardianEmail: "",
+          educationWorkExperience: "",
+          leadSource: "",
+          leadReference: "",
+          coursePreference: "Python",
+          installmentPreference: 1,
+          documents: [submittedDocument],
+          declarationAccepted: true,
+        },
+      },
+      [],
+    );
+
+    const { container } = render(
+      <>
+        <ApplicationDetails snapshot={snapshot} documentVerifications={documentVerifications} />
+        <DocumentVerificationHistory documentVerifications={documentVerifications} />
+        <section>
+          <h3>For office use only</h3>
+        </section>
+      </>,
+    );
+
+    const applicationForm = container.querySelector(".application-details-print");
+    expect(applicationForm).not.toBeNull();
+    expect(within(applicationForm!).getByText("ID Proof")).toBeInTheDocument();
+    expect(within(applicationForm!).queryByText(/Pending → Approved/)).not.toBeInTheDocument();
+
+    const historyHeading = screen.getByRole("heading", { name: "Document Verification History" });
+    const historySection = historyHeading.closest("section");
+    expect(historySection).not.toBeNull();
+    expect(historySection).toHaveTextContent("ID Proof");
+    expect(historySection).toHaveTextContent("Pending → Approved");
+    expect(historySection).toHaveTextContent("Decision: Approved");
+    expect(historySection).toHaveTextContent("Accounts Officer");
+    expect(historySection).toHaveTextContent(new Date(verificationDate).toLocaleString("en-IN"));
+    expect(
+      historyHeading.compareDocumentPosition(
+        screen.getByRole("heading", { name: "For office use only" }),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("previews only uploaded documents and records approval decisions", async () => {

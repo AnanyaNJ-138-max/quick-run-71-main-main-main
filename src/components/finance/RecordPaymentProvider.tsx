@@ -5,6 +5,7 @@ import {
   ApplicationDetail,
   ApplicationDetails,
   ApplicationDetailsPrintButton,
+  DocumentVerificationHistory,
 } from "@/components/finance/ApplicationDetails";
 import { AdministrationHistory } from "@/components/finance/AdministrationHistory";
 import { RecordPaymentContext } from "@/components/finance/RecordPaymentContext";
@@ -1245,6 +1246,7 @@ function RecordPaymentDialog({
                   />
                 </div>
               </section>
+              <DocumentVerificationHistory documentVerifications={person.documentVerifications} />
               <section className="space-y-3 rounded-lg border p-4">
                 <h3 className="font-semibold">For office use only</h3>
                 <div className="grid gap-3 text-sm sm:grid-cols-2">
