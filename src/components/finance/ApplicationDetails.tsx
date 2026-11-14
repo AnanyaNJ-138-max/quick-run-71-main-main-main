@@ -52,11 +52,26 @@ const DOCUMENT_LABELS: Record<StudentApplicationDetails["documents"][number]["ty
 const documentLabel = (type: StudentApplicationDetails["documents"][number]["type"]) =>
   DOCUMENT_LABELS[type] ?? type;
 
-export function ApplicationDetail({ label, value }: { label: string; value: ReactNode }) {
+export function ApplicationDetail({
+  label,
+  value,
+  layout = "stacked",
+}: {
+  label: string;
+  value: ReactNode;
+  layout?: "stacked" | "inline";
+}) {
   return (
-    <div className="min-w-0">
+    <div
+      className={cn(
+        "min-w-0",
+        layout === "inline" && "grid grid-cols-[7rem_minmax(0,1fr)] items-start gap-2",
+      )}
+    >
       <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</dt>
-      <dd className="mt-1 break-words text-sm font-medium">{value}</dd>
+      <dd className={cn("min-w-0 break-words text-sm font-medium", layout === "stacked" && "mt-1")}>
+        {value}
+      </dd>
     </div>
   );
 }
@@ -391,18 +406,7 @@ export function ApplicationDetails({
           {/* 1. Personal details */}
           <DetailSection index={1} title="Personal details" accent="lavender">
             <div className="flex items-start gap-4 sm:gap-6">
-              <dl className="grid min-w-0 flex-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
-                <ApplicationDetail label="Student full name" value={shown(snapshot.name)} />
-                <ApplicationDetail label="Date of birth" value={dob} />
-                <ApplicationDetail label="Age" value={age} />
-                <ApplicationDetail label="Gender" value="Not provided" />
-                <ApplicationDetail label="Mobile no" value={shown(snapshot.contact)} />
-                <ApplicationDetail label="Email" value={shown(snapshot.email)} />
-                <div className="sm:col-span-2 lg:col-span-3">
-                  <ApplicationDetail label="Permanent address" value={shown(address)} />
-                </div>
-              </dl>
-              <figure className="shrink-0 text-center">
+              <figure className="shrink-0">
                 <div className="flex h-[7.5rem] w-24 items-center justify-center overflow-hidden rounded-sm border border-application-line bg-application-surface text-muted-foreground print:bg-white">
                   {hasStudentPhoto ? (
                     <img
@@ -417,19 +421,51 @@ export function ApplicationDetails({
                     />
                   )}
                 </div>
-                <figcaption className="mt-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                  Student Photo
-                </figcaption>
               </figure>
+              <dl className="grid min-w-0 flex-1 gap-x-4 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                <ApplicationDetail
+                  label="Student full name"
+                  value={shown(snapshot.name)}
+                  layout="inline"
+                />
+                <ApplicationDetail label="Date of birth" value={dob} layout="inline" />
+                <ApplicationDetail label="Age" value={age} layout="inline" />
+                <ApplicationDetail label="Gender" value="Not provided" layout="inline" />
+                <ApplicationDetail
+                  label="Mobile no"
+                  value={shown(snapshot.contact)}
+                  layout="inline"
+                />
+                <ApplicationDetail label="Email" value={shown(snapshot.email)} layout="inline" />
+                <div className="sm:col-span-2 lg:col-span-3">
+                  <ApplicationDetail
+                    label="Permanent address"
+                    value={shown(address)}
+                    layout="inline"
+                  />
+                </div>
+              </dl>
             </div>
           </DetailSection>
 
           {/* 2. Guardian details */}
           <DetailSection index={2} title="Guardian details" accent="aqua">
-            <dl className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
-              <ApplicationDetail label="Guardian Name & Relation" value={guardianLabel} />
-              <ApplicationDetail label="Guardian mobile no" value={shown(details?.guardianPhone)} />
-              <ApplicationDetail label="Guardian email" value={shown(details?.guardianEmail)} />
+            <dl className="grid gap-x-4 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+              <ApplicationDetail
+                label="Guardian Name & Relation"
+                value={guardianLabel}
+                layout="inline"
+              />
+              <ApplicationDetail
+                label="Guardian mobile no"
+                value={shown(details?.guardianPhone)}
+                layout="inline"
+              />
+              <ApplicationDetail
+                label="Guardian email"
+                value={shown(details?.guardianEmail)}
+                layout="inline"
+              />
             </dl>
           </DetailSection>
 
@@ -482,28 +518,32 @@ export function ApplicationDetails({
                 <span className="text-sm text-muted-foreground">Not provided</span>
               )}
             </div>
-            <div className="mt-3">
-              <ApplicationDetail label="More details" value="Not provided" />
+            <div className="mt-2">
+              <ApplicationDetail label="More details" value="Not provided" layout="inline" />
             </div>
           </DetailSection>
 
           {/* 5. Course preference */}
           <DetailSection index={5} title="Course preference" accent="aqua">
-            <dl className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+            <dl className="grid gap-x-4 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
               <ApplicationDetail
                 label="Course applied for"
                 value={shown(details?.coursePreference)}
+                layout="inline"
               />
-              <ApplicationDetail
-                label="Fee plan preferred"
-                value={
-                  plan?.length
-                    ? plan
-                        .map((installment) => displayInstallmentLabel(installment.label))
-                        .join(", ")
-                    : "Not provided"
-                }
-              />
+              <div className="sm:col-span-2 lg:col-span-4">
+                <ApplicationDetail
+                  label="Fee plan preferred"
+                  value={
+                    plan?.length
+                      ? plan
+                          .map((installment) => displayInstallmentLabel(installment.label))
+                          .join(", ")
+                      : "Not provided"
+                  }
+                  layout="inline"
+                />
+              </div>
               <ApplicationDetail
                 label="Instalments"
                 value={
@@ -513,6 +553,7 @@ export function ApplicationDetails({
                       ? "Yes"
                       : "No"
                 }
+                layout="inline"
               />
               <ApplicationDetail
                 label="Preferred number of instalments"
@@ -521,6 +562,7 @@ export function ApplicationDetails({
                     ? "Not provided"
                     : String(installmentPreference)
                 }
+                layout="inline"
               />
             </dl>
           </DetailSection>

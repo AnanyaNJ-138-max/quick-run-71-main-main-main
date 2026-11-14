@@ -722,7 +722,7 @@ function Applications() {
                   <h3 className="font-semibold">For office use only</h3>
                   <StatusBadge status={overallVerificationStatus} />
                 </div>
-                <div className="grid gap-3 text-sm sm:grid-cols-2">
+                <div className="grid gap-x-3 gap-y-2 text-sm sm:grid-cols-2">
                   <ApplicationDetail
                     label="Accountant verification"
                     value={
@@ -730,6 +730,7 @@ function Applications() {
                         ? `Verified · ${formatDate(accountantVerifiedAt.slice(0, 10))}`
                         : "Pending"
                     }
+                    layout="inline"
                   />
                   <ApplicationDetail
                     label="Administrator verification"
@@ -738,6 +739,7 @@ function Applications() {
                         ? `Verified · ${formatDate(administratorVerifiedAt.slice(0, 10))}`
                         : "Pending"
                     }
+                    layout="inline"
                   />
                 </div>
               </section>

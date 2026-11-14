@@ -96,16 +96,29 @@ describe("Administration history", () => {
       },
       [],
     );
-    render(<ApplicationDetails snapshot={snapshot} />);
+    const { container } = render(<ApplicationDetails snapshot={snapshot} />);
     expect(screen.getByText("ID Proof")).toBeInTheDocument();
     expect(screen.getAllByText("Missing")).toHaveLength(2);
-    expect(screen.getByText("Student Photo")).toBeInTheDocument();
+    expect(screen.queryByText("Student Photo")).not.toBeInTheDocument();
+    const personalSection = screen
+      .getByRole("heading", { name: "Personal details" })
+      .closest("section");
+    const photo = personalSection?.querySelector("figure");
+    const personalFields = personalSection?.querySelector("dl");
+    expect(photo).not.toBeNull();
+    expect(personalFields).not.toBeNull();
+    expect(
+      photo!.compareDocumentPosition(personalFields!) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    const nameLabel = within(personalSection!).getByText("Student full name");
+    expect(nameLabel.parentElement).toHaveClass("grid-cols-[7rem_minmax(0,1fr)]");
+    expect(nameLabel.nextElementSibling).toHaveTextContent("Test Student");
     expect(screen.queryByRole("button", { name: "Preview ID proof" })).not.toBeInTheDocument();
     expect(screen.getAllByText("Not provided").length).toBeGreaterThan(0);
     expect(screen.queryByText("Photo not provided")).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "STUDENT DETAILS" })).not.toBeInTheDocument();
     expect(screen.queryByAltText("Skill AI")).not.toBeInTheDocument();
-    expect(document.querySelector(".application-details-print")).toHaveClass(
+    expect(container.querySelector(".application-details-print")).toHaveClass(
       "border-application-orange",
     );
     expect(screen.queryByText("Test Student", { selector: "h2" })).not.toBeInTheDocument();

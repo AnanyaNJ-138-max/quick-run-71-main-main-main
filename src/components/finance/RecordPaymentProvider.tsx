@@ -1249,7 +1249,7 @@ function RecordPaymentDialog({
               <DocumentVerificationHistory documentVerifications={person.documentVerifications} />
               <section className="space-y-3 rounded-lg border p-4">
                 <h3 className="font-semibold">For office use only</h3>
-                <div className="grid gap-3 text-sm sm:grid-cols-2">
+                <div className="grid gap-x-3 gap-y-2 text-sm sm:grid-cols-2">
                   <ApplicationDetail
                     label="Accountant verification"
                     value={
@@ -1257,6 +1257,7 @@ function RecordPaymentDialog({
                         ? `Verified · ${formatDate(person.accountantVerifiedAt.slice(0, 10))}`
                         : "Pending"
                     }
+                    layout="inline"
                   />
                 </div>
               </section>
