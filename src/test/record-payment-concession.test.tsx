@@ -321,6 +321,7 @@ describe("Record Payment concession integration", () => {
     expect(screen.getByLabelText("Date")).toHaveValue(formatDate(TODAY));
     expect(screen.getByLabelText("Date")).toHaveAttribute("readonly");
     expect(screen.getByLabelText("Date")).toHaveAttribute("type", "text");
+    expect(screen.getByLabelText("Date")).toHaveClass("bg-muted/30");
     expect(screen.getByLabelText("Method")).toBeInTheDocument();
     expect(document.getElementById("record-payment-target")).toHaveTextContent(
       "Automatic · oldest outstanding first",

@@ -856,7 +856,7 @@ function RecordPaymentDialog({
                             readOnly
                             aria-readonly="true"
                             tabIndex={-1}
-                            className="h-10 rounded-lg"
+                            className="h-10 rounded-lg bg-muted/30"
                           />
                         </Field>
                       </div>
