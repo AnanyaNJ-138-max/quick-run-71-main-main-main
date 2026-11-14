@@ -37,7 +37,6 @@ import { formatDate, formatINR, TODAY } from "@/finance/logic";
 import { installmentPaid, personTotals } from "@/finance/feeWorkflow";
 import {
   STUDENT_DECLARATION,
-  concessionFinancials,
   latestDirectorDecision,
   requestedDiscountAmount,
   type ConcessionRequest,
@@ -273,14 +272,7 @@ function ConcessionDetail({
   const submission = request.submission;
   const requested = requestedDiscountAmount(submission);
   const decision = request.directorDecision;
-  const approved = decision?.decision === "Approved" ? decision.approvedDiscount : undefined;
   const applied = request.applied;
-  const applicableDiscount = applied?.approvedDiscount ?? approved ?? 0;
-  const impact = concessionFinancials(
-    applied?.originalFees ?? submission.totalFees,
-    applicableDiscount,
-    totals?.paid ?? applied?.paidAtApply ?? submission.amountAlreadyPaid,
-  );
 
   const [review, setReview] = useState({
     reviewedBy: request.review?.reviewedBy ?? "Accounts Officer",
@@ -459,61 +451,6 @@ function ConcessionDetail({
             </p>
           )}
         </section>
-
-        <Section number="03" title="Financial Impact">
-          <dl className="grid grid-cols-2 gap-4 md:grid-cols-6">
-            <ApplicationDetail label="Original Fees" value={formatINR(impact.originalFees)} />
-            <ApplicationDetail
-              label="Director-Approved Discount"
-              value={
-                approved !== undefined
-                  ? formatINR(approved)
-                  : decision?.decision === "Rejected"
-                    ? "Not approved"
-                    : "Pending Director Decision"
-              }
-            />
-            <ApplicationDetail label="Net Payable" value={formatINR(impact.netPayable)} />
-            <ApplicationDetail label="Paid" value={formatINR(impact.paid)} />
-            <ApplicationDetail
-              label={impact.excessCredit > 0 ? "Student Credit" : "Outstanding"}
-              value={formatINR(impact.excessCredit > 0 ? impact.excessCredit : impact.outstanding)}
-            />
-            <ApplicationDetail label="Application Status" value={requestDisplayStatus(request)} />
-            {applied && (
-              <>
-                <ApplicationDetail label="Applied By" value={applied.appliedBy ?? "Accounts"} />
-                <ApplicationDetail label="Application Date" value={decisionDate(applied.date)} />
-              </>
-            )}
-          </dl>
-          {decision?.decision === "Rejected" && (
-            <p className="mt-2 text-xs text-muted-foreground">
-              No concession is applied; the original fee schedule remains unchanged.
-            </p>
-          )}
-          {!decision && !applied && (
-            <p className="mt-2 text-xs text-muted-foreground">
-              Fees remain unchanged until the Director approves and Accounts applies the exact
-              approved amount.
-            </p>
-          )}
-          {impact.excessCredit > 0 && (
-            <p className="mt-2 text-xs text-muted-foreground">
-              Excess payment is held as Student Credit. No automatic refund is issued.
-            </p>
-          )}
-          {applied && applied.adjustments.length > 0 && (
-            <ul className="mt-3 space-y-1 text-xs">
-              {applied.adjustments.map((item, index) => (
-                <li key={item.installmentId}>
-                  <SerialNumberLabel index={index} />
-                  {item.label}: {formatINR(item.before)} → {formatINR(item.after)}
-                </li>
-              ))}
-            </ul>
-          )}
-        </Section>
 
         <Section number="04" title="Billing Information">
           {person ? (
