@@ -651,7 +651,7 @@ export type ApplicationStage =
   | "Rejected";
 
 export type ApplicationListStatus = "New" | "Pending";
-export type ApplicationListFilter = "All" | ApplicationListStatus | "Resubmitted";
+export type ApplicationListFilter = "All" | ApplicationListStatus;
 
 export function matchesApplicationListFilter(
   status: ApplicationListStatus | null,
@@ -660,7 +660,6 @@ export function matchesApplicationListFilter(
 ): boolean {
   if (status === null) return false;
   if (filter === "All") return true;
-  if (filter === "Resubmitted") return status === "New" && hasResubmission;
   return status === filter && !hasResubmission;
 }
 

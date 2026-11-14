@@ -422,7 +422,6 @@ describe("installment-based fee workflow", () => {
     expect(matchesApplicationListFilter("New", false, "New")).toBe(true);
     expect(matchesApplicationListFilter("Pending", false, "New")).toBe(false);
     expect(matchesApplicationListFilter("New", true, "New")).toBe(false);
-    expect(matchesApplicationListFilter("New", true, "Resubmitted")).toBe(true);
     expect(matchesApplicationListFilter("Pending", false, "Pending")).toBe(true);
     expect(matchesApplicationListFilter("Pending", false, "All")).toBe(true);
 

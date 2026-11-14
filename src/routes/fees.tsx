@@ -564,7 +564,6 @@ function Applications() {
                 <SelectItem value="All">All</SelectItem>
                 <SelectItem value="New">New</SelectItem>
                 <SelectItem value="Pending">Pending</SelectItem>
-                <SelectItem value="Resubmitted">Resubmitted</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -663,11 +662,6 @@ function Applications() {
                             />
                             {applicationStatus}
                           </Badge>
-                          {resubmission && (
-                            <Badge variant="info" className="whitespace-nowrap">
-                              Resubmitted
-                            </Badge>
-                          )}
                         </div>
                       </TableCell>
                     </TableRow>
