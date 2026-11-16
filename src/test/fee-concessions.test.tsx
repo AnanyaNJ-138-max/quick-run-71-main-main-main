@@ -129,6 +129,51 @@ describe("Fee Concessions UI", () => {
     });
   }, 15000);
 
+  it("filters requests by pending workflow status and final Director decision", async () => {
+    renderConcessions();
+    const pendingTable = screen.getByRole("table");
+    expect(within(pendingTable).getByText("FC-2026-001")).toBeInTheDocument();
+    expect(within(pendingTable).getByText("FC-2026-003")).toBeInTheDocument();
+    expect(within(pendingTable).queryByText("FC-2026-005")).toBeNull();
+    expect(within(pendingTable).queryByText("FC-2026-007")).toBeNull();
+
+    fireEvent.click(screen.getByRole("combobox", { name: "Request status" }));
+    expect(
+      (await screen.findAllByRole("option")).map((option) => option.textContent?.trim()),
+    ).toEqual(["All Request Status", "Pending Director Decision", "Pending Accounts Review"]);
+    fireEvent.click(screen.getByRole("option", { name: "Pending Director Decision" }));
+    expect(within(screen.getByRole("table")).getByText("FC-2026-003")).toBeInTheDocument();
+    expect(within(screen.getByRole("table")).queryByText("FC-2026-001")).toBeNull();
+
+    fireEvent.click(screen.getByRole("combobox", { name: "Request status" }));
+    fireEvent.click(screen.getByRole("option", { name: "Pending Accounts Review" }));
+    expect(within(screen.getByRole("table")).getByText("FC-2026-001")).toBeInTheDocument();
+    expect(within(screen.getByRole("table")).queryByText("FC-2026-003")).toBeNull();
+
+    fireEvent.mouseDown(screen.getByRole("tab", { name: "Decision History" }), {
+      button: 0,
+      ctrlKey: false,
+    });
+    await waitFor(() =>
+      expect(screen.getByRole("tab", { name: "Decision History" })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      ),
+    );
+    fireEvent.click(screen.getByRole("combobox", { name: "Director decision" }));
+    expect(
+      (await screen.findAllByRole("option")).map((option) => option.textContent?.trim()),
+    ).toEqual(["All Director Decisions", "Approved", "Rejected"]);
+    fireEvent.click(screen.getByRole("option", { name: "Rejected" }));
+    expect(within(screen.getByRole("table")).getByText("FC-2026-007")).toBeInTheDocument();
+    expect(within(screen.getByRole("table")).queryByText("FC-2026-005")).toBeNull();
+
+    fireEvent.click(screen.getByRole("combobox", { name: "Director decision" }));
+    fireEvent.click(screen.getByRole("option", { name: "Approved" }));
+    expect(within(screen.getByRole("table")).getByText("FC-2026-005")).toBeInTheDocument();
+    expect(within(screen.getByRole("table")).queryByText("FC-2026-007")).toBeNull();
+  });
+
   it("shows Director decisions, requested and approved amounts, and comments in history", async () => {
     renderConcessions();
     fireEvent.mouseDown(screen.getByRole("tab", { name: "Decision History" }), {

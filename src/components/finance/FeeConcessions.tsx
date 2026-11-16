@@ -44,11 +44,17 @@ import {
   type ConcessionStatus,
 } from "@/finance/concessions";
 
-const PENDING_STATUSES = ["Pending Accounts Review", "Pending Director Decision", "Approved"];
+const PENDING_STATUSES = ["Pending Director Decision", "Pending Accounts Review"];
 const DIRECTOR_DECISIONS = ["Approved", "Rejected"];
 
 function requestDisplayStatus(request: ConcessionRequest) {
   return request.status;
+}
+
+function isPendingRequest(request: ConcessionRequest) {
+  return (
+    request.status === "Pending Accounts Review" || request.status === "Pending Director Decision"
+  );
 }
 
 function statusTone(status: string): "success" | "warning" | "danger" | "info" | "neutral" {
@@ -102,12 +108,8 @@ export function FeeConcessions() {
   const pendingRows = useMemo(
     () =>
       concessions.filter((request) => {
-        const requiresAction =
-          request.status === "Pending Accounts Review" ||
-          request.status === "Pending Director Decision" ||
-          (request.status === "Approved" && !request.applied);
         return (
-          requiresAction &&
+          isPendingRequest(request) &&
           (pendingStatus === "all" || request.status === pendingStatus) &&
           matchesSearch(request)
         );
@@ -155,6 +157,7 @@ export function FeeConcessions() {
               value={pendingStatus}
               onChange={setPendingStatus}
               options={PENDING_STATUSES}
+              allLabel="All Request Status"
             />
           ) : (
             <FilterSelect
@@ -162,6 +165,7 @@ export function FeeConcessions() {
               value={decisionFilter}
               onChange={setDecisionFilter}
               options={DIRECTOR_DECISIONS}
+              allLabel="All Director Decisions"
             />
           )}
         </FilterBar>
@@ -689,14 +693,5 @@ function ConcessionDetail({
 
 export function useConcessionCount() {
   const { concessions } = useFinance();
-  return useMemo(
-    () =>
-      concessions.filter(
-        (request) =>
-          request.status === "Pending Accounts Review" ||
-          request.status === "Pending Director Decision" ||
-          (request.status === "Approved" && !request.applied),
-      ).length,
-    [concessions],
-  );
+  return useMemo(() => concessions.filter(isPendingRequest).length, [concessions]);
 }
