@@ -56,20 +56,31 @@ export function ApplicationDetail({
   label,
   value,
   layout = "stacked",
+  labelSingleLine = false,
 }: {
   label: string;
   value: ReactNode;
   layout?: "stacked" | "inline";
+  labelSingleLine?: boolean;
 }) {
   return (
-    <div
-      className={cn(
-        "min-w-0",
-        layout === "inline" && "grid grid-cols-[7rem_minmax(0,1fr)] items-start gap-2",
-      )}
-    >
-      <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</dt>
-      <dd className={cn("min-w-0 break-words text-sm font-medium", layout === "stacked" && "mt-1")}>
+    <div className={cn("min-w-0", layout === "inline" && "flex items-baseline gap-2")}>
+      <dt
+        className={cn(
+          "text-xs font-medium uppercase tracking-wide text-muted-foreground",
+          layout === "inline" && "w-fit max-w-[48%] shrink-0",
+          layout === "inline" && labelSingleLine && "max-w-none whitespace-nowrap",
+        )}
+      >
+        {label}
+      </dt>
+      <dd
+        className={cn(
+          "min-w-0 break-words text-sm font-medium",
+          layout === "inline" && "flex-1",
+          layout === "stacked" && "mt-1",
+        )}
+      >
         {value}
       </dd>
     </div>
@@ -525,13 +536,15 @@ export function ApplicationDetails({
 
           {/* 5. Course preference */}
           <DetailSection index={5} title="Course preference" accent="aqua">
-            <dl className="grid gap-x-4 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-              <ApplicationDetail
-                label="Course applied for"
-                value={shown(details?.coursePreference)}
-                layout="inline"
-              />
-              <div className="sm:col-span-2 lg:col-span-4">
+            <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <ApplicationDetail
+                  label="Course applied for"
+                  value={shown(details?.coursePreference)}
+                  layout="inline"
+                />
+              </div>
+              <div className="sm:col-span-2">
                 <ApplicationDetail
                   label="Fee plan preferred"
                   value={
@@ -563,6 +576,7 @@ export function ApplicationDetails({
                     : String(installmentPreference)
                 }
                 layout="inline"
+                labelSingleLine
               />
             </dl>
           </DetailSection>

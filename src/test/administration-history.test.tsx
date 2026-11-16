@@ -111,8 +111,12 @@ describe("Administration history", () => {
       photo!.compareDocumentPosition(personalFields!) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     const nameLabel = within(personalSection!).getByText("Student full name");
-    expect(nameLabel.parentElement).toHaveClass("grid-cols-[7rem_minmax(0,1fr)]");
+    expect(nameLabel.parentElement).toHaveClass("flex", "gap-2");
     expect(nameLabel.nextElementSibling).toHaveTextContent("Test Student");
+    expect(
+      screen.getByRole("heading", { name: "Course preference" }).parentElement?.nextElementSibling,
+    ).toHaveClass("sm:grid-cols-2");
+    expect(screen.getByText("Preferred number of instalments")).toHaveClass("whitespace-nowrap");
     expect(screen.queryByRole("button", { name: "Preview ID proof" })).not.toBeInTheDocument();
     expect(screen.getAllByText("Not provided").length).toBeGreaterThan(0);
     expect(screen.queryByText("Photo not provided")).not.toBeInTheDocument();
