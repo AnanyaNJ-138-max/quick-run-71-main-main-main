@@ -196,7 +196,7 @@ export function DocumentVerificationHistory({
                   {event.correctionRequestReference
                     ? ` · Request ${event.correctionRequestReference}`
                     : ""}
-                  {event.status === "Rejected" && event.reason ? ` · ${event.reason}` : ""}
+                  {event.reason ? ` · Remark: ${event.reason}` : ""}
                 </p>
               </li>
             ))}
@@ -354,6 +354,20 @@ export function ApplicationDetails({
   };
   const applicationCorrections = (correctionRequests ?? []).filter(
     (request) => request.applicationId === snapshot.applicationId,
+  );
+  const activeCorrectionRequests = applicationCorrections.filter(
+    (request) =>
+      request.status === "Awaiting Resubmission" ||
+      (request.status === "Resubmitted" &&
+        request.documents.some((requested) => {
+          const document = details?.documents.find((item) => item.type === requested.documentType);
+          return (
+            !!requested.resubmittedFileUrl &&
+            !!document &&
+            document.fileUrl === requested.resubmittedFileUrl &&
+            documentVerificationStatus(document, documentVerifications) === "Pending"
+          );
+        })),
   );
   const unresolvedCorrection = applicationCorrections.find(
     (request) => request.status === "Awaiting Resubmission",
@@ -657,32 +671,23 @@ export function ApplicationDetails({
           </DetailSection>
         </div>
       </div>
-      {onVerifyDocument && applicationCorrections.length > 0 && (
+      {onVerifyDocument && activeCorrectionRequests.length > 0 && (
         <div className="no-print mt-4 space-y-2 rounded-lg border border-application-line p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h4 className="text-sm font-semibold">Correction Requests to Admission</h4>
           </div>
           <ul className="space-y-2">
-            {applicationCorrections
+            {activeCorrectionRequests
               .slice()
               .sort((a, b) => b.requestedAt.localeCompare(a.requestedAt))
               .map((request) => {
-                const latestResubmission = request.history
-                  ?.filter((event) => event.action === "Resubmitted")
-                  .at(-1);
                 return (
                   <li
                     key={request.id}
                     className="flex flex-wrap items-start justify-between gap-2 rounded-md border p-2 text-xs"
                   >
                     <div className="min-w-0">
-                      <p className="font-medium">
-                        Correction request {request.id} · {request.status}
-                      </p>
-                      <p className="text-muted-foreground">
-                        Application No. {request.applicationId} · {request.studentName} ·{" "}
-                        {request.studentContact}
-                      </p>
+                      <p className="font-medium">Correction request {request.id}</p>
                       <ul className="mt-1 list-disc pl-4 text-destructive">
                         {request.documents.map((document) => (
                           <li key={document.documentType}>
@@ -691,23 +696,14 @@ export function ApplicationDetails({
                           </li>
                         ))}
                       </ul>
-                      <p className="text-muted-foreground">
-                        Requested {formatDate(request.requestedAt.slice(0, 10))} by{" "}
-                        {request.requestedBy}
-                        {latestResubmission
-                          ? ` · Resubmitted ${new Date(latestResubmission.date).toLocaleString("en-IN")}`
-                          : ""}
+                      <p className="mt-1 text-muted-foreground">
+                        Resubmission status:{" "}
+                        {request.status === "Awaiting Resubmission"
+                          ? "Awaiting resubmission"
+                          : request.resubmittedAt
+                            ? `Resubmitted · ${new Date(request.resubmittedAt).toLocaleString("en-IN")}`
+                            : "Resubmitted"}
                       </p>
-                      {request.history && request.history.length > 0 && (
-                        <ul className="mt-1 space-y-1 text-muted-foreground">
-                          {request.history.map((event, index) => (
-                            <li key={`${event.date}-${index}`}>
-                              {event.action} · {event.documentTypes.map(documentLabel).join(", ")} ·{" "}
-                              {new Date(event.date).toLocaleString("en-IN")} · {event.actor}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
                     </div>
                   </li>
                 );

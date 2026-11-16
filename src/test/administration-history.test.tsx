@@ -14,7 +14,12 @@ import {
   recordAdministrationDetailsSent,
 } from "@/finance/feeWorkflow";
 import { formatINR } from "@/finance/logic";
-import type { DocumentVerification, FeeWorkflowPayment, Person } from "@/finance/types";
+import type {
+  DocumentCorrectionRequest,
+  DocumentVerification,
+  FeeWorkflowPayment,
+  Person,
+} from "@/finance/types";
 
 const person: Person = {
   id: "p1",
@@ -130,26 +135,25 @@ describe("Administration history", () => {
   });
 
   it("updates document status icons for approvals and rejections while preserving pending icons", () => {
-    const documents = [
-      {
-        type: "ID proof" as const,
-        fileName: "id-proof.pdf",
-        fileUrl: "https://files.example.test/id-proof.pdf",
-        provided: true,
-      },
-      {
-        type: "TC" as const,
-        fileName: "tc.pdf",
-        fileUrl: "https://files.example.test/tc.pdf",
-        provided: true,
-      },
-      {
-        type: "Latest marksheet" as const,
-        fileName: "marksheet.pdf",
-        fileUrl: "https://files.example.test/marksheet.pdf",
-        provided: true,
-      },
-    ];
+    const idProofDocument = {
+      type: "ID proof" as const,
+      fileName: "id-proof.pdf",
+      fileUrl: "https://files.example.test/id-proof.pdf",
+      provided: true,
+    };
+    const tcDocument = {
+      type: "TC" as const,
+      fileName: "tc.pdf",
+      fileUrl: "https://files.example.test/tc.pdf",
+      provided: true,
+    };
+    const marksheetDocument = {
+      type: "Latest marksheet" as const,
+      fileName: "marksheet.pdf",
+      fileUrl: "https://files.example.test/marksheet.pdf",
+      provided: true,
+    };
+    const documents = [idProofDocument, tcDocument, marksheetDocument];
     const snapshot = buildAdministrationDetailsPayload(
       {
         ...person,
@@ -207,8 +211,8 @@ describe("Administration history", () => {
       <ApplicationDetails
         snapshot={snapshot}
         documentVerifications={[
-          makeVerification(documents[0], "Approved"),
-          makeVerification(documents[1], "Rejected"),
+          makeVerification(idProofDocument, "Approved"),
+          makeVerification(tcDocument, "Rejected"),
         ]}
       />,
     );
@@ -282,7 +286,7 @@ describe("Administration history", () => {
       </>,
     );
 
-    const applicationForm = container.querySelector(".application-details-print");
+    const applicationForm = container.querySelector<HTMLElement>(".application-details-print");
     expect(applicationForm).not.toBeNull();
     expect(within(applicationForm!).getByText("ID Proof")).toBeInTheDocument();
     expect(within(applicationForm!).queryByText(/Pending → Approved/)).not.toBeInTheDocument();
@@ -295,6 +299,173 @@ describe("Administration history", () => {
     expect(historySection).toHaveTextContent("Decision: Approved");
     expect(historySection).toHaveTextContent("Accounts Officer");
     expect(historySection).toHaveTextContent(new Date(verificationDate).toLocaleString("en-IN"));
+    expect(
+      historyHeading.compareDocumentPosition(
+        screen.getByRole("heading", { name: "For office use only" }),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("shows active correction summaries separately from one complete verification history", () => {
+    const idProofDocument = {
+      type: "ID proof" as const,
+      fileName: "id-proof.pdf",
+      fileUrl: "https://files.example.test/id-proof.pdf",
+      provided: true,
+    };
+    const tcDocument = {
+      type: "TC" as const,
+      fileName: "tc.pdf",
+      fileUrl: "https://files.example.test/tc-resubmitted.pdf",
+      provided: true,
+    };
+    const marksheetDocument = {
+      type: "Latest marksheet" as const,
+      fileName: "marksheet.pdf",
+      fileUrl: "https://files.example.test/marksheet.pdf",
+      provided: true,
+    };
+    const documents = [idProofDocument, tcDocument, marksheetDocument];
+    const snapshot = buildAdministrationDetailsPayload(
+      {
+        ...person,
+        applicationDetails: {
+          dateOfBirth: "",
+          addressLine1: "",
+          addressLine2: "",
+          city: "",
+          state: "",
+          postalCode: "",
+          guardianName: "",
+          guardianRelationship: "",
+          guardianPhone: "",
+          guardianEmail: "",
+          educationWorkExperience: "",
+          leadSource: "",
+          leadReference: "",
+          coursePreference: "Python",
+          installmentPreference: 1,
+          documents,
+          declarationAccepted: true,
+        },
+      },
+      [],
+    );
+    const makeCorrectionRequest = (
+      id: string,
+      documentType: DocumentCorrectionRequest["documents"][number]["documentType"],
+      status: DocumentCorrectionRequest["status"],
+      resubmittedFileUrl?: string,
+    ): DocumentCorrectionRequest => ({
+      id,
+      personId: person.id,
+      applicationId: person.applicationId,
+      studentName: person.name,
+      studentContact: person.contact,
+      documents: [
+        {
+          documentType,
+          issue: "Rejected",
+          reason: `${documentType} correction required`,
+          ...(resubmittedFileUrl ? { resubmittedFileUrl } : {}),
+        },
+      ],
+      requestedAt: "2026-11-10T00:00:00.000Z",
+      requestedBy: "Accounts Officer",
+      status,
+      ...(status === "Resubmitted" ? { resubmittedAt: "2026-11-15T00:00:00.000Z" } : {}),
+      history: [
+        {
+          action: "Requested",
+          date: "2026-11-10T00:00:00.000Z",
+          actor: "Accounts Officer",
+          documentTypes: [documentType],
+        },
+        ...(status === "Resubmitted"
+          ? [
+              {
+                action: "Resubmitted" as const,
+                date: "2026-11-15T00:00:00.000Z",
+                actor: "Admission (Sales)",
+                documentTypes: [documentType],
+              },
+            ]
+          : []),
+      ],
+    });
+    const correctionRequests = [
+      makeCorrectionRequest("corr-open", "ID proof", "Awaiting Resubmission"),
+      makeCorrectionRequest("corr-resubmitted", "TC", "Resubmitted", tcDocument.fileUrl),
+      makeCorrectionRequest(
+        "corr-old",
+        "Latest marksheet",
+        "Resubmitted",
+        "https://files.example.test/old-marksheet.pdf",
+      ),
+    ];
+    const verificationDate = "2026-11-16T08:30:00.000Z";
+    const verificationFingerprint = documentSourceFingerprint(
+      idProofDocument.fileName,
+      idProofDocument.fileUrl,
+    );
+    const verificationEvent = {
+      status: "Rejected" as const,
+      decision: "Rejected" as const,
+      previousStatus: "Pending" as const,
+      date: verificationDate,
+      fileName: idProofDocument.fileName,
+      sourceFingerprint: verificationFingerprint,
+      reason: "Image is unreadable.",
+      reviewer: "Accounts Officer",
+    };
+    const documentVerifications: DocumentVerification[] = [
+      {
+        documentType: "ID proof",
+        ...verificationEvent,
+        history: [verificationEvent],
+      },
+    ];
+
+    render(
+      <>
+        <ApplicationDetails
+          snapshot={snapshot}
+          documentVerifications={documentVerifications}
+          onVerifyDocument={vi.fn()}
+          correctionRequests={correctionRequests}
+        />
+        <DocumentVerificationHistory documentVerifications={documentVerifications} />
+        <section>
+          <h3>For office use only</h3>
+        </section>
+      </>,
+    );
+
+    expect(screen.getAllByRole("heading", { name: "Document Verification History" })).toHaveLength(
+      1,
+    );
+    const correctionHeading = screen.getByRole("heading", {
+      name: "Correction Requests to Admission",
+    });
+    const correctionSection = correctionHeading.closest(".no-print");
+    expect(correctionSection).toHaveTextContent(
+      "ID Proof · Rejected: ID proof correction required",
+    );
+    expect(correctionSection).toHaveTextContent("Awaiting resubmission");
+    expect(correctionSection).toHaveTextContent(
+      "Transfer Certificate (TC) · Rejected: TC correction required",
+    );
+    expect(correctionSection).toHaveTextContent("Resubmitted");
+    expect(correctionSection).not.toHaveTextContent("corr-old");
+    expect(correctionSection).not.toHaveTextContent("Admission (Sales)");
+    expect(correctionSection).not.toHaveTextContent("Requested ·");
+
+    const historyHeading = screen.getByRole("heading", { name: "Document Verification History" });
+    const historySection = historyHeading.closest("section");
+    expect(historySection).toHaveTextContent("Pending → Rejected");
+    expect(historySection).toHaveTextContent("Decision: Rejected");
+    expect(historySection).toHaveTextContent("Accounts Officer");
+    expect(historySection).toHaveTextContent("Remark: Image is unreadable.");
     expect(
       historyHeading.compareDocumentPosition(
         screen.getByRole("heading", { name: "For office use only" }),
