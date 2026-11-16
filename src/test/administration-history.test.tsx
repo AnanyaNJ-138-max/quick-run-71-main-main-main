@@ -473,6 +473,139 @@ describe("Administration history", () => {
     ).toBeTruthy();
   });
 
+  it("shows the correction action only after a resubmitted document is reviewed and rejected", () => {
+    const originalDocument = {
+      type: "ID proof" as const,
+      fileName: "id-proof.pdf",
+      fileUrl: "https://files.example.test/id-proof.pdf",
+      provided: true,
+    };
+    const resubmittedDocument = {
+      ...originalDocument,
+      fileName: "id-proof-corrected.pdf",
+      fileUrl: "https://files.example.test/id-proof-corrected.pdf",
+    };
+    const makeSnapshot = (document: typeof originalDocument) =>
+      buildAdministrationDetailsPayload(
+        {
+          ...person,
+          applicationDetails: {
+            dateOfBirth: "",
+            addressLine1: "",
+            addressLine2: "",
+            city: "",
+            state: "",
+            postalCode: "",
+            guardianName: "",
+            guardianRelationship: "",
+            guardianPhone: "",
+            guardianEmail: "",
+            educationWorkExperience: "",
+            leadSource: "",
+            leadReference: "",
+            coursePreference: "Python",
+            installmentPreference: 1,
+            documents: [document],
+            declarationAccepted: true,
+          },
+        },
+        [],
+      );
+    const makeRejectedVerification = (document: typeof originalDocument) => {
+      const event = {
+        status: "Rejected" as const,
+        decision: "Rejected" as const,
+        previousStatus: "Pending" as const,
+        date: "2026-11-16T08:30:00.000Z",
+        fileName: document.fileName,
+        sourceFingerprint: documentSourceFingerprint(document.fileName, document.fileUrl),
+        reason: "The image is unreadable.",
+        reviewer: "Accounts Officer",
+      };
+      return {
+        documentType: document.type,
+        ...event,
+        history: [event],
+      } satisfies DocumentVerification;
+    };
+    const awaitingRequest: DocumentCorrectionRequest = {
+      id: "corr-current",
+      personId: person.id,
+      applicationId: person.applicationId,
+      studentName: person.name,
+      studentContact: person.contact,
+      documents: [
+        {
+          documentType: "ID proof",
+          issue: "Rejected",
+          reason: "The image is unreadable.",
+        },
+      ],
+      requestedAt: "2026-11-16T08:00:00.000Z",
+      requestedBy: "Accounts Officer",
+      status: "Awaiting Resubmission",
+    };
+    const resubmittedRequest: DocumentCorrectionRequest = {
+      ...awaitingRequest,
+      status: "Resubmitted",
+      resubmittedAt: "2026-11-16T09:00:00.000Z",
+      documents: [
+        {
+          ...awaitingRequest.documents[0]!,
+          resubmittedFileUrl: resubmittedDocument.fileUrl,
+        },
+      ],
+    };
+    const onSendCorrectionRequest = vi.fn(() => true);
+    const { rerender } = render(
+      <ApplicationDetails
+        snapshot={makeSnapshot(originalDocument)}
+        documentVerifications={[makeRejectedVerification(originalDocument)]}
+        onVerifyDocument={vi.fn()}
+        onSendCorrectionRequest={onSendCorrectionRequest}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Send Correction Request" })).toBeInTheDocument();
+
+    rerender(
+      <ApplicationDetails
+        snapshot={makeSnapshot(originalDocument)}
+        documentVerifications={[makeRejectedVerification(originalDocument)]}
+        onVerifyDocument={vi.fn()}
+        onSendCorrectionRequest={onSendCorrectionRequest}
+        correctionRequests={[awaitingRequest]}
+      />,
+    );
+    expect(
+      screen.queryByRole("button", { name: "Send Correction Request" }),
+    ).not.toBeInTheDocument();
+
+    rerender(
+      <ApplicationDetails
+        snapshot={makeSnapshot(resubmittedDocument)}
+        documentVerifications={[]}
+        onVerifyDocument={vi.fn()}
+        onSendCorrectionRequest={onSendCorrectionRequest}
+        correctionRequests={[resubmittedRequest]}
+      />,
+    );
+    expect(
+      screen.queryByRole("button", { name: "Send Correction Request" }),
+    ).not.toBeInTheDocument();
+
+    rerender(
+      <ApplicationDetails
+        snapshot={makeSnapshot(resubmittedDocument)}
+        documentVerifications={[makeRejectedVerification(resubmittedDocument)]}
+        onVerifyDocument={vi.fn()}
+        onSendCorrectionRequest={onSendCorrectionRequest}
+        correctionRequests={[resubmittedRequest]}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Send Correction Request" })).toBeInTheDocument();
+  });
+
   it("previews only uploaded documents and records approval decisions", async () => {
     const uploaded = {
       type: "ID proof" as const,

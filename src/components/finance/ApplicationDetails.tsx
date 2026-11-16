@@ -711,17 +711,19 @@ export function ApplicationDetails({
           </ul>
         </div>
       )}
-      {onSendCorrectionRequest && correctionCandidates.length > 0 && (
-        <div className="no-print mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-application-line p-3">
-          <p className="text-xs text-muted-foreground">
-            Review the affected documents and their reasons before sending one consolidated request
-            to Admission (Sales).
-          </p>
-          <Button type="button" size="sm" variant="outline" onClick={openCorrectionPreview}>
-            Send Correction Request
-          </Button>
-        </div>
-      )}
+      {onSendCorrectionRequest &&
+        correctionCandidates.length > 0 &&
+        activeCorrectionRequests.length === 0 && (
+          <div className="no-print mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-application-line p-3">
+            <p className="text-xs text-muted-foreground">
+              Review the affected documents and their reasons before sending one consolidated
+              request to Admission (Sales).
+            </p>
+            <Button type="button" size="sm" variant="outline" onClick={openCorrectionPreview}>
+              Send Correction Request
+            </Button>
+          </div>
+        )}
       <Dialog open={correctionPreviewOpen} onOpenChange={setCorrectionPreviewOpen}>
         <DialogContent className="max-w-lg [&>button]:hidden">
           <DialogHeader>
