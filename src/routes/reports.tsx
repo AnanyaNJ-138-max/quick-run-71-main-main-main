@@ -1018,9 +1018,7 @@ function ReportPanel({
                               className={[
                                 "whitespace-nowrap",
                                 reportData.numericCols?.includes(index) ? "text-right" : "",
-                                index === 1
-                                  ? "monthly-fee-student sticky left-48 z-30 bg-background text-left"
-                                  : "",
+                                index === 1 ? "monthly-fee-student bg-background text-left" : "",
                               ]
                                 .filter(Boolean)
                                 .join(" ")}
@@ -1075,7 +1073,7 @@ function ReportPanel({
                                         ? "num text-right"
                                         : "",
                                       cellIndex === 1
-                                        ? "monthly-fee-student sticky left-48 z-10 w-44 bg-background"
+                                        ? "monthly-fee-student w-44 bg-background"
                                         : "",
                                       isOverdueMonth ? "text-red-600 dark:text-red-400" : "",
                                     ]
