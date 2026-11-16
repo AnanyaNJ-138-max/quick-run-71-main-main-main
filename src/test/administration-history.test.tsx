@@ -129,6 +129,95 @@ describe("Administration history", () => {
     expect(screen.getByText(String(new Date().getFullYear() - 2000))).toBeInTheDocument();
   });
 
+  it("updates document status icons for approvals and rejections while preserving pending icons", () => {
+    const documents = [
+      {
+        type: "ID proof" as const,
+        fileName: "id-proof.pdf",
+        fileUrl: "https://files.example.test/id-proof.pdf",
+        provided: true,
+      },
+      {
+        type: "TC" as const,
+        fileName: "tc.pdf",
+        fileUrl: "https://files.example.test/tc.pdf",
+        provided: true,
+      },
+      {
+        type: "Latest marksheet" as const,
+        fileName: "marksheet.pdf",
+        fileUrl: "https://files.example.test/marksheet.pdf",
+        provided: true,
+      },
+    ];
+    const snapshot = buildAdministrationDetailsPayload(
+      {
+        ...person,
+        applicationDetails: {
+          dateOfBirth: "",
+          addressLine1: "",
+          addressLine2: "",
+          city: "",
+          state: "",
+          postalCode: "",
+          guardianName: "",
+          guardianRelationship: "",
+          guardianPhone: "",
+          guardianEmail: "",
+          educationWorkExperience: "",
+          leadSource: "",
+          leadReference: "",
+          coursePreference: "Python",
+          installmentPreference: 1,
+          documents,
+          declarationAccepted: true,
+        },
+      },
+      [],
+    );
+    const { rerender } = render(
+      <ApplicationDetails snapshot={snapshot} documentVerifications={[]} />,
+    );
+
+    const getDocumentIcon = (label: string) =>
+      screen.getByText(label).closest("li")?.querySelector("svg");
+    const pendingIcon = getDocumentIcon("Latest Marksheet");
+    expect(pendingIcon).toHaveClass("text-muted-foreground");
+    expect(pendingIcon).not.toHaveClass("fill-green-600", "fill-red-600");
+
+    const makeVerification = (
+      document: (typeof documents)[number],
+      status: "Approved" | "Rejected",
+    ): DocumentVerification => {
+      const sourceFingerprint = documentSourceFingerprint(document.fileName, document.fileUrl);
+      const event = {
+        status,
+        date: "2026-11-16T00:00:00.000Z",
+        fileName: document.fileName,
+        sourceFingerprint,
+      };
+      return {
+        documentType: document.type,
+        ...event,
+        history: [event],
+      };
+    };
+
+    rerender(
+      <ApplicationDetails
+        snapshot={snapshot}
+        documentVerifications={[
+          makeVerification(documents[0], "Approved"),
+          makeVerification(documents[1], "Rejected"),
+        ]}
+      />,
+    );
+
+    expect(getDocumentIcon("ID Proof")).toHaveClass("fill-green-600", "text-white");
+    expect(getDocumentIcon("Transfer Certificate (TC)")).toHaveClass("fill-red-600", "text-white");
+    expect(getDocumentIcon("Latest Marksheet")).toHaveClass("text-muted-foreground");
+  });
+
   it("renders document verification history outside the original application form", () => {
     const submittedDocument = {
       type: "ID proof" as const,

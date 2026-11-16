@@ -587,6 +587,10 @@ export function ApplicationDetails({
               <ul className="grid gap-2 text-sm sm:grid-cols-2">
                 {details.documents.map((document, index) => {
                   const { type, provided, fileUrl } = document;
+                  const verificationStatus = documentVerificationStatus(
+                    document,
+                    documentVerifications,
+                  );
                   const uploadedFileAvailable =
                     provided && !!fileUrl && DOCUMENT_FILE_SOURCE_PATTERN.test(fileUrl);
                   return (
@@ -596,7 +600,11 @@ export function ApplicationDetails({
                     >
                       <span className="flex min-w-0 items-center gap-2">
                         <SerialNumberLabel index={index} />
-                        {provided ? (
+                        {verificationStatus === "Approved" ? (
+                          <CheckCircle2 className="h-4 w-4 shrink-0 fill-green-600 text-white" />
+                        ) : verificationStatus === "Rejected" ? (
+                          <XCircle className="h-4 w-4 shrink-0 fill-red-600 text-white" />
+                        ) : provided ? (
                           <CheckCircle2 className="h-4 w-4 shrink-0 text-muted-foreground" />
                         ) : (
                           <XCircle className="h-4 w-4 shrink-0 text-muted-foreground" />
