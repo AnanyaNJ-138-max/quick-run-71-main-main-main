@@ -9,6 +9,7 @@ import {
   receiveSubmission,
   recordDirectorDecision,
   saveReview,
+  type ConcessionAttachment,
   type ConcessionRequest,
   type ConcessionSubmission,
   type ConcessionType,
@@ -113,6 +114,54 @@ const SCENARIOS: {
   },
 ];
 
+function samplePdfUrl(title: string) {
+  const content = `BT /F1 14 Tf 40 160 Td (${title}) Tj 0 -24 Td (Sample supporting document submitted by Admission Sales.) Tj ET`;
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 360 220] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+    `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+  ];
+  let pdf = "%PDF-1.4\n";
+  const offsets = objects.map((object, index) => {
+    const offset = pdf.length;
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+    return offset;
+  });
+  const xrefOffset = pdf.length;
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  for (const offset of offsets) pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  return `data:application/pdf,${encodeURIComponent(pdf)}`;
+}
+
+const SAMPLE_SUPPORTING_DOCUMENTS: ConcessionAttachment[] = [
+  {
+    id: "sample-concession-request",
+    fileName: "Fee_Concession_Request.pdf",
+    fileType: "application/pdf",
+    sizeBytes: 284_672,
+    previewUrl: samplePdfUrl("Fee Concession Request"),
+  },
+  {
+    id: "sample-family-income-proof",
+    fileName: "Family_Income_Proof.jpg",
+    fileType: "image/jpeg",
+    sizeBytes: 196_608,
+    previewUrl:
+      "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAX/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAF//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABBQJ//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAwEBPwF//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAgEBPwF//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQAGPwJ//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPyF//9k=",
+  },
+  {
+    id: "sample-supporting-statement",
+    fileName: "Supporting_Statement.png",
+    fileType: "image/png",
+    sizeBytes: 147_456,
+    previewUrl:
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l2cAAAAASUVORK5CYII=",
+  },
+];
+
 /** Clearly simulated incoming Admission requests for testing the workflow. */
 export function createSimulatedConcessions(workflow: FeeWorkflowState): ConcessionRequest[] {
   const candidates = workflow.persons.filter(
@@ -155,6 +204,7 @@ export function createSimulatedConcessions(workflow: FeeWorkflowState): Concessi
     const received = receiveSubmission(requests, {
       id: `FCR-SIM-${index + 1}`,
       personId: person.id,
+      attachments: SAMPLE_SUPPORTING_DOCUMENTS,
       submission: submissionForPerson(person, workflow, {
         type: scenario.type,
         value: scenario.value,

@@ -113,13 +113,40 @@ describe("Fee Concessions UI", () => {
     expect(within(dialog).queryByLabelText("Reason for Concession")).toBeNull();
     expect(within(dialog).getByText("Director Response")).toBeInTheDocument();
     expect(within(dialog).queryByText("Financial Impact")).toBeNull();
+    expect(
+      within(dialog).getByRole("heading", { name: "02 Supporting Documents" }),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText("Fee_Concession_Request.pdf")).toBeInTheDocument();
+    expect(within(dialog).getByText("Family_Income_Proof.jpg")).toBeInTheDocument();
+    expect(within(dialog).getByText("Supporting_Statement.png")).toBeInTheDocument();
+    expect(within(dialog).getByText("PDF · 278.0 KB")).toBeInTheDocument();
+    expect(within(dialog).getByText("JPG · 192.0 KB")).toBeInTheDocument();
+    expect(within(dialog).getByText("PNG · 144.0 KB")).toBeInTheDocument();
+    for (const [fileName, fileType] of [
+      ["Fee_Concession_Request.pdf", "application/pdf"],
+      ["Family_Income_Proof.jpg", "image/jpeg"],
+      ["Supporting_Statement.png", "image/png"],
+    ]) {
+      expect(within(dialog).getByRole("link", { name: `Preview ${fileName}` })).toHaveAttribute(
+        "href",
+        expect.stringContaining(`data:${fileType}`),
+      );
+      expect(within(dialog).getByRole("link", { name: `Preview ${fileName}` })).toHaveAttribute(
+        "target",
+        "_blank",
+      );
+      expect(within(dialog).getByRole("link", { name: `Download ${fileName}` })).toHaveAttribute(
+        "download",
+        fileName,
+      );
+    }
     expect(within(dialog).getByText("Billing Information")).toBeInTheDocument();
     expect(within(dialog).getByText("Director Decision & Activity History")).toBeInTheDocument();
 
     const sectionNumbers = Array.from(dialog.querySelectorAll("section > h3 span"))
       .map((number) => number.textContent?.trim())
       .filter(Boolean);
-    expect(sectionNumbers).toEqual(["01", "02", "03", "04", "05"]);
+    expect(sectionNumbers).toEqual(["01", "02", "03", "04", "05", "06"]);
 
     fireEvent.click(within(dialog).getByRole("button", { name: "Send to Director" }));
     await waitFor(() => {
@@ -220,7 +247,7 @@ describe("Fee Concessions UI", () => {
 
     const dialog = await screen.findByRole("dialog");
     expect(
-      within(dialog).getByRole("heading", { name: "03 Director Response" }),
+      within(dialog).getByRole("heading", { name: "04 Director Response" }),
     ).toBeInTheDocument();
     expect(within(dialog).getAllByText("Rejected").length).toBeGreaterThan(0);
     expect(within(dialog).getAllByText("Decision Date").length).toBeGreaterThan(0);

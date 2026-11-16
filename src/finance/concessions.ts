@@ -44,6 +44,14 @@ export interface ConcessionSubmission {
   declarationAccepted: boolean;
 }
 
+export interface ConcessionAttachment {
+  id: string;
+  fileName: string;
+  fileType: "application/pdf" | "image/jpeg" | "image/png";
+  sizeBytes: number;
+  previewUrl: string;
+}
+
 export interface AccountsReview {
   reviewedBy: string;
   reviewDate: string;
@@ -96,6 +104,7 @@ export interface ConcessionRequest {
   concessionNo: string;
   personId: string;
   submission: ConcessionSubmission;
+  attachments?: ConcessionAttachment[] | undefined;
   /** Earlier submissions retained from older workflow records. */
   previousSubmissions: ConcessionSubmission[];
   status: ConcessionStatus;
@@ -325,6 +334,7 @@ export function receiveSubmission(
     id: string;
     personId: string;
     submission: ConcessionSubmission;
+    attachments?: ConcessionAttachment[];
     date: string;
     simulated: boolean;
   },
@@ -338,6 +348,7 @@ export function receiveSubmission(
     concessionNo: nextConcessionNo(requests),
     personId: input.personId,
     submission: input.submission,
+    attachments: input.attachments,
     previousSubmissions: [],
     status: "Pending Accounts Review",
     simulated: input.simulated,

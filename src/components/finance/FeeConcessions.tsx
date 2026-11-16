@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Eye } from "lucide-react";
+import { Download, Eye, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +39,7 @@ import {
   STUDENT_DECLARATION,
   latestDirectorDecision,
   requestedDiscountAmount,
+  type ConcessionAttachment,
   type ConcessionRequest,
   type ConcessionResult,
   type ConcessionStatus,
@@ -78,6 +79,16 @@ function requestedLabel(request: ConcessionRequest) {
 
 function decisionDate(decisionDateValue?: string) {
   return decisionDateValue ? formatDate(decisionDateValue.slice(0, 10)) : "—";
+}
+
+function formatAttachmentSize(sizeBytes: number) {
+  return sizeBytes < 1024 ? `${sizeBytes} B` : `${(sizeBytes / 1024).toFixed(1)} KB`;
+}
+
+function attachmentTypeLabel(fileType: ConcessionAttachment["fileType"]) {
+  if (fileType === "application/pdf") return "PDF";
+  if (fileType === "image/jpeg") return "JPG";
+  return "PNG";
 }
 
 function approvedDiscountAmount(decision: ReturnType<typeof latestDirectorDecision>) {
@@ -451,6 +462,61 @@ function ConcessionDetail({
 
         <Section
           number={request.previousSubmissions.length > 0 ? "03" : "02"}
+          title="Supporting Documents"
+        >
+          {request.attachments?.length ? (
+            <div className="space-y-2">
+              {request.attachments.map((attachment) => (
+                <div
+                  key={attachment.id}
+                  className="flex flex-col gap-3 rounded-lg border border-border p-3 sm:flex-row sm:items-center"
+                >
+                  <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0 flex-1">
+                    <p className="break-all text-sm font-medium">{attachment.fileName}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {attachmentTypeLabel(attachment.fileType)} ·{" "}
+                      {formatAttachmentSize(attachment.sizeBytes)}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button asChild size="sm" variant="outline">
+                      <a
+                        href={attachment.previewUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label={`Preview ${attachment.fileName}`}
+                      >
+                        <Eye className="mr-1 h-3.5 w-3.5" />
+                        Preview
+                      </a>
+                    </Button>
+                    <Button asChild size="sm" variant="outline">
+                      <a
+                        href={attachment.previewUrl}
+                        download={attachment.fileName}
+                        aria-label={`Download ${attachment.fileName}`}
+                      >
+                        <Download className="mr-1 h-3.5 w-3.5" />
+                        Download
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No supporting documents were attached by Admission.
+            </p>
+          )}
+          <p className="mt-2 text-xs text-muted-foreground">
+            Admission (Sales) attachments are read-only for Finance.
+          </p>
+        </Section>
+
+        <Section
+          number={request.previousSubmissions.length > 0 ? "04" : "03"}
           title="Accounts Review &amp; Forwarding"
         >
           <div className="grid gap-3 md:grid-cols-3">
@@ -472,7 +538,7 @@ function ConcessionDetail({
         </Section>
 
         <Section
-          number={request.previousSubmissions.length > 0 ? "04" : "03"}
+          number={request.previousSubmissions.length > 0 ? "05" : "04"}
           title="Director Response"
         >
           <dl className="grid gap-4 md:grid-cols-2">
@@ -503,7 +569,7 @@ function ConcessionDetail({
         </Section>
 
         <Section
-          number={request.previousSubmissions.length > 0 ? "05" : "04"}
+          number={request.previousSubmissions.length > 0 ? "06" : "05"}
           title="Billing Information"
         >
           {person ? (
@@ -618,7 +684,7 @@ function ConcessionDetail({
         </Section>
 
         <Section
-          number={request.previousSubmissions.length > 0 ? "06" : "05"}
+          number={request.previousSubmissions.length > 0 ? "07" : "06"}
           title="Director Decision & Activity History"
         >
           <ol className="space-y-3 border-l border-border pl-4">
