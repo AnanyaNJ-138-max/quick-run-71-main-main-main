@@ -112,7 +112,7 @@ describe("Fee Concessions UI", () => {
     );
     expect(within(dialog).queryByLabelText("Reason for Concession")).toBeNull();
     expect(within(dialog).getByText("Director Response")).toBeInTheDocument();
-    expect(within(dialog).getByText("Financial Impact")).toBeInTheDocument();
+    expect(within(dialog).queryByText("Financial Impact")).toBeNull();
     expect(within(dialog).getByText("Billing Information")).toBeInTheDocument();
     expect(within(dialog).getByText("Director Decision & Activity History")).toBeInTheDocument();
 
@@ -148,7 +148,9 @@ describe("Fee Concessions UI", () => {
     fireEvent.click(within(row!).getByRole("button", { name: "View Details" }));
 
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByRole("heading", { name: "Director Response" })).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("heading", { name: "03 Director Response" }),
+    ).toBeInTheDocument();
     expect(within(dialog).getAllByText("Rejected").length).toBeGreaterThan(0);
     expect(within(dialog).getAllByText("Decision Date").length).toBeGreaterThan(0);
     expect(within(dialog).queryByText("Director Remarks")).toBeNull();

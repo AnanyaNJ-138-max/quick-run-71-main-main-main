@@ -370,7 +370,10 @@ function ConcessionDetail({
           </Section>
         )}
 
-        <Section number={request.previousSubmissions.length > 0 ? "02" : "01"} title="Original Admission Submission">
+        <Section
+          number={request.previousSubmissions.length > 0 ? "02" : "01"}
+          title="Original Admission Submission"
+        >
           <dl className="grid grid-cols-2 gap-4 md:grid-cols-3">
             <ApplicationDetail label="Student Name" value={submission.studentName} />
             <ApplicationDetail label="Branch / Centre Name" value={submission.branch} />
@@ -412,7 +415,10 @@ function ConcessionDetail({
           </p>
         </Section>
 
-        <Section number={request.previousSubmissions.length > 0 ? "03" : "02"} title="Accounts Review &amp; Forwarding">
+        <Section
+          number={request.previousSubmissions.length > 0 ? "03" : "02"}
+          title="Accounts Review &amp; Forwarding"
+        >
           <div className="grid gap-3 md:grid-cols-3">
             <ApplicationDetail label="Review Date" value={formatDate(review.reviewDate)} />
             <ApplicationDetail
@@ -431,8 +437,10 @@ function ConcessionDetail({
           )}
         </Section>
 
-        <section className="rounded-xl border border-border p-4">
-          <h3 className="mb-3 text-sm font-semibold">Director Response</h3>
+        <Section
+          number={request.previousSubmissions.length > 0 ? "04" : "03"}
+          title="Director Response"
+        >
           {decision ? (
             <dl className="grid gap-4 md:grid-cols-2">
               <ApplicationDetail label="Decision" value={decision.decision} />
@@ -450,9 +458,12 @@ function ConcessionDetail({
               Rejected. Fees remain unchanged and payable as billed.
             </p>
           )}
-        </section>
+        </Section>
 
-        <Section number={request.previousSubmissions.length > 0 ? "05" : "04"} title="Billing Information">
+        <Section
+          number={request.previousSubmissions.length > 0 ? "05" : "04"}
+          title="Billing Information"
+        >
           {person ? (
             <div className="space-y-3">
               <dl className="grid gap-3 md:grid-cols-4">
@@ -564,7 +575,10 @@ function ConcessionDetail({
           )}
         </Section>
 
-        <Section number={request.previousSubmissions.length > 0 ? "06" : "05"} title="Director Decision & Activity History">
+        <Section
+          number={request.previousSubmissions.length > 0 ? "06" : "05"}
+          title="Director Decision & Activity History"
+        >
           <ol className="space-y-3 border-l border-border pl-4">
             {activity.map(({ entry, index }, displayIndex) => (
               <li key={`${request.id}-activity-${index}`} className="text-sm">
