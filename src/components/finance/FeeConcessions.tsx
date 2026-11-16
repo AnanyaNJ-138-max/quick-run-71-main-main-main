@@ -74,6 +74,14 @@ function decisionDate(decisionDateValue?: string) {
   return decisionDateValue ? formatDate(decisionDateValue.slice(0, 10)) : "—";
 }
 
+function approvedDiscountAmount(decision: ReturnType<typeof latestDirectorDecision>) {
+  return decision?.decision === "Approved" &&
+    typeof decision.approvedDiscount === "number" &&
+    Number.isFinite(decision.approvedDiscount)
+    ? decision.approvedDiscount
+    : undefined;
+}
+
 export function FeeConcessions() {
   const { concessions } = useFinance();
   const [view, setView] = useState("pending");
@@ -195,6 +203,7 @@ function ConcessionTable({
             <TableHead>Course</TableHead>
             {mode === "history" && <TableHead>Decision Date</TableHead>}
             <TableHead className="text-right">Requested Amt</TableHead>
+            {mode === "history" && <TableHead className="text-right">Approved Amt</TableHead>}
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Details</TableHead>
           </TableRow>
@@ -203,6 +212,11 @@ function ConcessionTable({
           {rows.map((request, index) => {
             const decision =
               mode === "history" ? latestDirectorDecision(request) : request.directorDecision;
+            const requestedAmount = requestedDiscountAmount(request.submission);
+            const approvedAmount =
+              mode === "history" ? approvedDiscountAmount(decision) : undefined;
+            const reducedApproval =
+              approvedAmount !== undefined && approvedAmount < requestedAmount;
             return (
               <TableRow key={request.id}>
                 <SerialNumberCell index={index} />
@@ -211,11 +225,26 @@ function ConcessionTable({
                 <TableCell>{request.submission.studentName}</TableCell>
                 <TableCell>{request.submission.course}</TableCell>
                 {mode === "history" && <TableCell>{decisionDate(decision?.date)}</TableCell>}
-                <TableCell className="text-right">
-                  {formatINR(requestedDiscountAmount(request.submission))}
-                </TableCell>
+                <TableCell className="text-right">{formatINR(requestedAmount)}</TableCell>
+                {mode === "history" && (
+                  <TableCell
+                    className={
+                      reducedApproval
+                        ? "text-right font-semibold text-amber-700 dark:text-amber-400"
+                        : "text-right"
+                    }
+                  >
+                    {approvedAmount !== undefined ? formatINR(approvedAmount) : "—"}
+                  </TableCell>
+                )}
                 <TableCell>
-                  <ConcessionStatusBadge status={requestDisplayStatus(request)} />
+                  <ConcessionStatusBadge
+                    status={
+                      mode === "history" && decision
+                        ? decision.decision
+                        : requestDisplayStatus(request)
+                    }
+                  />
                 </TableCell>
                 <TableCell className="text-right">
                   <Button size="sm" variant="outline" onClick={() => onOpen(request.id)}>
@@ -271,7 +300,8 @@ function ConcessionDetail({
   const totals = person ? personTotals(person, personPayments) : null;
   const submission = request.submission;
   const requested = requestedDiscountAmount(submission);
-  const decision = request.directorDecision;
+  const decision = latestDirectorDecision(request);
+  const approvedAmount = approvedDiscountAmount(decision);
   const applied = request.applied;
 
   const [review, setReview] = useState({
@@ -441,18 +471,26 @@ function ConcessionDetail({
           number={request.previousSubmissions.length > 0 ? "04" : "03"}
           title="Director Response"
         >
-          {decision ? (
-            <dl className="grid gap-4 md:grid-cols-2">
-              <ApplicationDetail label="Decision" value={decision.decision} />
-              <ApplicationDetail label="Decision Date" value={decisionDate(decision.date)} />
-            </dl>
-          ) : forwardedWithoutResponse ? (
+          <dl className="grid gap-4 md:grid-cols-2">
+            <ApplicationDetail label="Requested Amount" value={formatINR(requested)} />
+            <ApplicationDetail
+              label="Approved Amount"
+              value={approvedAmount !== undefined ? formatINR(approvedAmount) : "—"}
+            />
+            <ApplicationDetail label="Director's Decision" value={decision?.decision ?? "—"} />
+            <ApplicationDetail label="Decision Date" value={decisionDate(decision?.date)} />
+            <ApplicationDetail
+              label="Director's Comments"
+              value={decision?.remarks.trim() || "—"}
+            />
+          </dl>
+          {!decision && forwardedWithoutResponse ? (
             <p className="text-sm font-medium">Pending Director Decision</p>
-          ) : (
+          ) : !decision ? (
             <p className="text-sm text-muted-foreground">
               "No Director response is recorded for this request."
             </p>
-          )}
+          ) : null}
           {decision?.decision === "Rejected" && (
             <p className="mt-2 text-xs text-muted-foreground">
               Rejected. Fees remain unchanged and payable as billed.

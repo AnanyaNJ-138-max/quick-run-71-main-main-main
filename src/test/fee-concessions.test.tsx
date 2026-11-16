@@ -129,7 +129,7 @@ describe("Fee Concessions UI", () => {
     });
   }, 15000);
 
-  it("keeps Director decisions read-only and displays only the decision and date", async () => {
+  it("shows Director decisions, requested and approved amounts, and comments in history", async () => {
     renderConcessions();
     fireEvent.mouseDown(screen.getByRole("tab", { name: "Decision History" }), {
       button: 0,
@@ -142,9 +142,35 @@ describe("Fee Concessions UI", () => {
       ),
     );
     const table = screen.getByRole("table");
+    expect(
+      within(table)
+        .getAllByRole("columnheader")
+        .map((header) => header.textContent?.trim()),
+    ).toEqual([
+      "Sl. No.",
+      "Concession No.",
+      "Application No.",
+      "Student",
+      "Course",
+      "Decision Date",
+      "Requested Amt",
+      "Approved Amt",
+      "Status",
+      "Details",
+    ]);
+
+    const approvedRow = within(table).getByText("FC-2026-005").closest("tr");
+    expect(approvedRow).not.toBeNull();
+    const approvedCells = within(approvedRow!).getAllByRole("cell");
+    expect(approvedCells[6]).toHaveTextContent(formatINR(3000));
+    expect(approvedCells[7]).toHaveTextContent(formatINR(2500));
+    expect(approvedCells[7]).toHaveClass("text-amber-700");
+    expect(approvedCells[8]).toHaveTextContent("Approved");
+
     const row = within(table).getByText("FC-2026-007").closest("tr");
     expect(row).not.toBeNull();
     expect(within(row!).getAllByText("Rejected").length).toBeGreaterThan(0);
+    expect(within(row!).getAllByRole("cell")[7]).toHaveTextContent("—");
     fireEvent.click(within(row!).getByRole("button", { name: "View Details" }));
 
     const dialog = await screen.findByRole("dialog");
@@ -153,10 +179,50 @@ describe("Fee Concessions UI", () => {
     ).toBeInTheDocument();
     expect(within(dialog).getAllByText("Rejected").length).toBeGreaterThan(0);
     expect(within(dialog).getAllByText("Decision Date").length).toBeGreaterThan(0);
-    expect(within(dialog).queryByText("Director Remarks")).toBeNull();
+    expect(within(dialog).getByText("Requested Amount").parentElement).toHaveTextContent(
+      formatINR(4000),
+    );
+    expect(within(dialog).getByText("Approved Amount").parentElement).toHaveTextContent("—");
+    expect(within(dialog).getByText("Director's Decision").parentElement).toHaveTextContent(
+      "Rejected",
+    );
+    expect(within(dialog).getByText("Director's Comments").parentElement).toHaveTextContent(
+      "The submitted documents do not meet the concession criteria.",
+    );
     expect(within(dialog).queryByText("Response Source")).toBeNull();
+    expect(within(dialog).queryByRole("textbox")).toBeNull();
     expect(within(dialog).queryByRole("button", { name: /approve|reject/i })).toBeNull();
     expect(within(dialog).queryByRole("button", { name: /clarification|return/i })).toBeNull();
+  });
+
+  it("shows the recorded approved amount and comments in the read-only details view", async () => {
+    renderConcessions();
+    fireEvent.mouseDown(screen.getByRole("tab", { name: "Decision History" }), {
+      button: 0,
+      ctrlKey: false,
+    });
+    await waitFor(() =>
+      expect(screen.getByRole("tab", { name: "Decision History" })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      ),
+    );
+    const table = screen.getByRole("table");
+    const row = within(table).getByText("FC-2026-005").closest("tr");
+    expect(row).not.toBeNull();
+    fireEvent.click(within(row!).getByRole("button", { name: "View Details" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Approved Amount").parentElement).toHaveTextContent(
+      formatINR(2500),
+    );
+    expect(within(dialog).getByText("Director's Decision").parentElement).toHaveTextContent(
+      "Approved",
+    );
+    expect(within(dialog).getByText("Director's Comments").parentElement).toHaveTextContent(
+      "Approved at ₹2,500 instead of ₹3,000.",
+    );
+    expect(within(dialog).queryByRole("textbox")).toBeNull();
   });
 
   it("persists the approved fee plan and installment breakdown across provider refresh", async () => {
