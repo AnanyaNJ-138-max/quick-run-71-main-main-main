@@ -28,6 +28,7 @@ import {
   applicationStage,
   applicationListStatus,
   applicationResubmissionForReview,
+  hasResubmittedDocumentsAwaitingReview,
   matchesApplicationListFilter,
   isApplicationVerified,
   markApplicationReviewed,
@@ -412,7 +413,7 @@ describe("installment-based fee workflow", () => {
         },
       ],
     };
-    expect(applicationListStatus(applicant, [], [], [resubmittedRequest])).toBe("New");
+    expect(applicationListStatus(applicant, [], [], [resubmittedRequest])).toBe("Pending");
     const resubmission = applicationResubmissionForReview(applicant, [resubmittedRequest]);
     expect(resubmission).toEqual({
       correctionRequestId: resubmittedRequest.id,
@@ -428,6 +429,105 @@ describe("installment-based fee workflow", () => {
     const verified = { ...applicant, accountantVerifiedAt: "2026-11-14T12:00:00.000Z" };
     expect(applicationListStatus(verified)).toBeNull();
     expect(appearsInBilling(verified, [])).toBe(true);
+  });
+
+  it("detects only resubmitted documents that are still pending Accounts review", () => {
+    const correctedDocument = {
+      type: "ID proof" as const,
+      fileName: "id-proof-corrected.pdf",
+      fileUrl: "/id-proof.pdf?resubmission=1",
+      provided: true,
+    };
+    const applicant = person({
+      id: "resubmission-review",
+      applicationStatus: "Received",
+      applicationDetails: {
+        dateOfBirth: "",
+        addressLine1: "",
+        addressLine2: "",
+        city: "",
+        state: "",
+        postalCode: "",
+        guardianName: "",
+        guardianRelationship: "",
+        guardianPhone: "",
+        guardianEmail: "",
+        educationWorkExperience: "",
+        leadSource: "",
+        leadReference: "",
+        coursePreference: "Python",
+        installmentPreference: 1,
+        documents: [correctedDocument],
+        declarationAccepted: true,
+      },
+    });
+    const correctionRequest = createCorrectionRequest(
+      applicant,
+      [{ documentType: "ID proof", issue: "Rejected", reason: "Unreadable." }],
+      "2026-11-14T10:00:00.000Z",
+    );
+    expect(hasResubmittedDocumentsAwaitingReview(applicant, [correctionRequest])).toBe(false);
+    expect(hasResubmittedDocumentsAwaitingReview(applicant, [])).toBe(false);
+    expect(applicationListStatus(applicant)).toBe("New");
+    expect(applicationListStatus(applicant, [], [], [correctionRequest])).toBe("Pending");
+
+    const resubmittedRequest = {
+      ...correctionRequest,
+      status: "Resubmitted" as const,
+      resubmittedAt: "2026-11-14T11:00:00.000Z",
+      documents: [
+        {
+          ...correctionRequest.documents[0]!,
+          resubmittedAt: "2026-11-14T11:00:00.000Z",
+          resubmittedFileUrl: correctedDocument.fileUrl,
+        },
+      ],
+      history: [
+        ...(correctionRequest.history ?? []),
+        {
+          action: "Resubmitted" as const,
+          date: "2026-11-14T11:00:00.000Z",
+          actor: "Admission (Sales)",
+          documentTypes: ["ID proof" as const],
+        },
+      ],
+    };
+    expect(hasResubmittedDocumentsAwaitingReview(applicant, [resubmittedRequest])).toBe(true);
+    expect(applicationStage(applicant, [], [], true, [resubmittedRequest])).toBe(
+      "Resubmitted for Review",
+    );
+    expect(applicationListStatus(applicant, [], [], [resubmittedRequest])).toBe("Pending");
+
+    const verificationEvent = {
+      status: "Rejected" as const,
+      decision: "Rejected" as const,
+      previousStatus: "Pending" as const,
+      date: "2026-11-14T11:00:00.000Z",
+      fileName: correctedDocument.fileName,
+      sourceFingerprint: documentSourceFingerprint(
+        correctedDocument.fileName,
+        correctedDocument.fileUrl,
+      ),
+      reviewer: "Accounts Officer",
+      reason: "Still unreadable.",
+    };
+    const reviewedApplicant = {
+      ...applicant,
+      documentVerifications: [
+        {
+          documentType: "ID proof" as const,
+          ...verificationEvent,
+          history: [verificationEvent],
+        },
+      ],
+    };
+    expect(hasResubmittedDocumentsAwaitingReview(reviewedApplicant, [resubmittedRequest])).toBe(
+      false,
+    );
+    expect(applicationStage(reviewedApplicant, [], [], true, [resubmittedRequest])).toBe(
+      "To review",
+    );
+    expect(applicationListStatus(reviewedApplicant, [], [], [resubmittedRequest])).toBe("Pending");
   });
 
   it("sends one correction request for missing and rejected documents and resubmits them together", () => {

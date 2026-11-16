@@ -3,7 +3,6 @@ import { differenceInCalendarDays } from "date-fns";
 import { FeeConcessions } from "@/components/finance/FeeConcessions";
 import { DocumentVerificationHistory } from "@/components/finance/ApplicationDetails";
 import {
-  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -77,6 +76,7 @@ import {
   applicationResubmissionForReview,
   applicationListStatus,
   matchesApplicationListFilter,
+  hasResubmittedDocumentsAwaitingReview,
   areRequiredDocumentsApproved,
   applicationStage,
   classAccess,
@@ -120,47 +120,6 @@ import {
   type Student,
 } from "@/finance/types";
 import { ADMISSION_NO_FULL } from "@/finance/labels";
-
-const APPLICATION_SEEN_EVENTS_STORAGE_KEY = "finance-application-seen-events-v1";
-
-function loadApplicationSeenEvents(): Record<string, string> {
-  if (typeof window === "undefined") return {};
-  try {
-    const stored = window.localStorage.getItem(APPLICATION_SEEN_EVENTS_STORAGE_KEY);
-    if (!stored) return {};
-    const parsed: unknown = JSON.parse(stored);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
-    return Object.fromEntries(
-      Object.entries(parsed).filter(
-        (entry): entry is [string, string] => typeof entry[1] === "string",
-      ),
-    );
-  } catch {
-    return {};
-  }
-}
-
-function applicationUnreadEventKey(
-  person: Person,
-  corrections: ReturnType<typeof useFinance>["documentCorrections"],
-  payments: FeeWorkflowPayment[],
-  handoffs: ReturnType<typeof useFinance>["feeWorkflow"]["handoffs"],
-  concessions: ReturnType<typeof useFinance>["concessions"],
-): string | null {
-  if (person.admissionNo || person.applicationRejection || isApplicationVerified(person))
-    return null;
-  const resubmission = applicationResubmissionForReview(
-    person,
-    corrections,
-    payments,
-    handoffs,
-    concessions,
-  );
-  if (resubmission) {
-    return `resubmitted:${resubmission.correctionRequestId}:${resubmission.date}:${resubmission.documentTypes.join(",")}`;
-  }
-  return person.applicationDetails ? `received:${person.appliedOn}` : null;
-}
 
 export const Route = createFileRoute("/fees")({
   validateSearch: (
@@ -383,36 +342,14 @@ function Applications() {
   const { applicationPersonId, applicationAction } = Route.useSearch();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<ApplicationListFilter>("All");
-  const [seenEvents, setSeenEvents] = useState(loadApplicationSeenEvents);
   const [view, setView] = useState<Person | null>(null);
-  const markApplicationSeen = useCallback(
-    (person: Person) => {
-      const eventKey = applicationUnreadEventKey(
-        person,
-        documentCorrections,
-        feeWorkflow.payments,
-        feeWorkflow.handoffs,
-        concessions,
-      );
-      if (!eventKey || seenEvents[person.id] === eventKey) return;
-      const updated = { ...seenEvents, [person.id]: eventKey };
-      setSeenEvents(updated);
-      try {
-        window.localStorage.setItem(APPLICATION_SEEN_EVENTS_STORAGE_KEY, JSON.stringify(updated));
-      } catch {
-        toast.error("Could not save this application's read status in this browser.");
-      }
-    },
-    [concessions, documentCorrections, feeWorkflow.handoffs, feeWorkflow.payments, seenEvents],
-  );
   useEffect(() => {
     const linkedPerson = feeWorkflow.persons.find((person) => person.id === applicationPersonId);
     if (linkedPerson) {
       setView(linkedPerson);
-      markApplicationSeen(linkedPerson);
       if (applicationAction) navigate({ search: { tab: "applications" } });
     }
-  }, [applicationAction, applicationPersonId, feeWorkflow.persons, markApplicationSeen, navigate]);
+  }, [applicationAction, applicationPersonId, feeWorkflow.persons, navigate]);
   const submitted = feeWorkflow.persons.filter((person) => person.applicationDetails);
   const personPayments = (person: Person) =>
     feeWorkflow.payments.filter((payment) => payment.personId === person.id);
@@ -605,19 +542,15 @@ function Applications() {
                   )?.amountDue;
                   const applicationStatus = statusForList(person);
                   const resubmission = resubmissionFor(person);
-                  const unreadEventKey = applicationUnreadEventKey(
+                  const hasPendingResubmission = hasResubmittedDocumentsAwaitingReview(
                     person,
                     documentCorrections,
-                    personPayments(person),
-                    feeWorkflow.handoffs,
-                    concessions,
                   );
                   return (
                     <TableRow
                       key={person.id}
                       onRowClick={() => {
                         setView(person);
-                        markApplicationSeen(person);
                       }}
                       rowLabel={`View application for ${person.name}`}
                     >
@@ -644,11 +577,11 @@ function Applications() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap items-center gap-1.5">
-                          {unreadEventKey && seenEvents[person.id] !== unreadEventKey && (
+                          {hasPendingResubmission && (
                             <span
-                              className="h-2 w-2 rounded-full bg-primary"
-                              aria-label="Unread application"
-                              title="Unread application"
+                              className="h-2 w-2 rounded-full bg-success"
+                              aria-label="Resubmitted documents awaiting Accounts review"
+                              title="Resubmitted documents awaiting Accounts review"
                             />
                           )}
                           <Badge

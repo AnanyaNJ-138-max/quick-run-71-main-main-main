@@ -320,7 +320,7 @@ function ConcessionDetail({
 
       <div className="space-y-4">
         {request.previousSubmissions.length > 0 && (
-          <Section number="00" title="Earlier Admission Submissions">
+          <Section number="01" title="Earlier Admission Submissions">
             <div className="space-y-3">
               {request.previousSubmissions.map((previous, index) => (
                 <div
@@ -370,7 +370,7 @@ function ConcessionDetail({
           </Section>
         )}
 
-        <Section number="01" title="Original Admission Submission">
+        <Section number={request.previousSubmissions.length > 0 ? "02" : "01"} title="Original Admission Submission">
           <dl className="grid grid-cols-2 gap-4 md:grid-cols-3">
             <ApplicationDetail label="Student Name" value={submission.studentName} />
             <ApplicationDetail label="Branch / Centre Name" value={submission.branch} />
@@ -412,7 +412,7 @@ function ConcessionDetail({
           </p>
         </Section>
 
-        <Section number="02" title="Accounts Review &amp; Forwarding">
+        <Section number={request.previousSubmissions.length > 0 ? "03" : "02"} title="Accounts Review &amp; Forwarding">
           <div className="grid gap-3 md:grid-cols-3">
             <ApplicationDetail label="Review Date" value={formatDate(review.reviewDate)} />
             <ApplicationDetail
@@ -452,7 +452,7 @@ function ConcessionDetail({
           )}
         </section>
 
-        <Section number="04" title="Billing Information">
+        <Section number={request.previousSubmissions.length > 0 ? "05" : "04"} title="Billing Information">
           {person ? (
             <div className="space-y-3">
               <dl className="grid gap-3 md:grid-cols-4">
@@ -564,7 +564,7 @@ function ConcessionDetail({
           )}
         </Section>
 
-        <Section number="05" title="Director Decision & Activity History">
+        <Section number={request.previousSubmissions.length > 0 ? "06" : "05"} title="Director Decision & Activity History">
           <ol className="space-y-3 border-l border-border pl-4">
             {activity.map(({ entry, index }, displayIndex) => (
               <li key={`${request.id}-activity-${index}`} className="text-sm">

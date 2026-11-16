@@ -669,6 +669,31 @@ export interface ApplicationResubmissionEvent {
   documentTypes: string[];
 }
 
+export function hasResubmittedDocumentsAwaitingReview(
+  person: Person,
+  correctionRequests: DocumentCorrectionRequest[] = [],
+): boolean {
+  if (person.admissionNo || person.applicationRejection || isApplicationVerified(person))
+    return false;
+
+  return correctionRequests.some(
+    (request) =>
+      request.applicationId === person.applicationId &&
+      request.status === "Resubmitted" &&
+      request.documents.some((requested) => {
+        const document = person.applicationDetails?.documents.find(
+          (item) => item.type === requested.documentType,
+        );
+        return (
+          !!requested.resubmittedFileUrl &&
+          !!document &&
+          document.fileUrl === requested.resubmittedFileUrl &&
+          documentVerificationStatus(document, person.documentVerifications) === "Pending"
+        );
+      }),
+  );
+}
+
 export function applicationResubmissionForReview(
   person: Person,
   correctionRequests: DocumentCorrectionRequest[] = [],
@@ -713,7 +738,17 @@ export function applicationListStatus(
 
   const stage = applicationStage(person, payments, handoffs, true, correctionRequests, concessions);
   if (stage === "Awaiting Resubmission") return "Pending";
-  if (stage === "To review" || stage === "Resubmitted for Review") return "New";
+  if (stage === "Resubmitted for Review") return "Pending";
+  if (stage === "To review")
+    return applicationResubmissionForReview(
+      person,
+      correctionRequests,
+      payments,
+      handoffs,
+      concessions,
+    )
+      ? "Pending"
+      : "New";
   return null;
 }
 
@@ -737,20 +772,7 @@ export function applicationStage(
     return "Awaiting Resubmission";
   if (
     requireApplicationReview &&
-    applicationRequests.some(
-      (request) =>
-        request.status === "Resubmitted" &&
-        request.documents.some((requested) => {
-          const document = person.applicationDetails?.documents.find(
-            (item) => item.type === requested.documentType,
-          );
-          return (
-            !!requested.resubmittedFileUrl &&
-            document?.fileUrl === requested.resubmittedFileUrl &&
-            documentVerificationStatus(document, person.documentVerifications) === "Pending"
-          );
-        }),
-    )
+    hasResubmittedDocumentsAwaitingReview(person, applicationRequests)
   )
     return "Resubmitted for Review";
   if (hasAdministrationDetailsEvent(person.id, handoffs)) return "Handoff prepared";
